@@ -1,0 +1,6 @@
+{
+  "name": "Study Quest",
+  "description": "Adventure and discovery game-style learning platform for college courses and CLEP exams with interactive quest map, 100% multiple-choice trivia, and audio drills.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
