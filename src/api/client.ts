@@ -54,6 +54,7 @@ export const api = {
     text: string;
     title?: string;
     subject?: SubjectType;
+    images?: Array<{ url: string; caption?: string }>;
   }): Promise<{ message: string; chapter: Chapter }> {
     const res = await fetch('/api/chapters/upload', {
       method: 'POST',

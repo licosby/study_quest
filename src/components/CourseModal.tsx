@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useStudyQuest } from '../context/StudyQuestContext.js';
 import { SubjectIcon } from './SubjectIcon.js';
-import { X, Play, BookOpen, Trash2, Edit3, CheckCircle2, Circle, Sparkles, Volume2, AlertTriangle, MapPin } from 'lucide-react';
+import { ChapterMasteryBar } from './ChapterMasteryBar.js';
+import { ExpertBadgeMedallion } from './ExpertBadgeMedallion.js';
+import { X, Play, BookOpen, Trash2, Edit3, CheckCircle2, Circle, Sparkles, Volume2, AlertTriangle, MapPin, Award } from 'lucide-react';
 
 export const CourseModal: React.FC = () => {
   const {
@@ -20,6 +22,7 @@ export const CourseModal: React.FC = () => {
   if (!isCourseModalOpen || !activeCourse) return null;
 
   const handleStartChapter = (ch: any) => {
+    closeCourseModal();
     setActiveChapter(ch);
     startTrivia(activeCourse, ch);
   };
@@ -128,16 +131,37 @@ export const CourseModal: React.FC = () => {
 
         {/* Course Destination & Progress Overview */}
         <div className="bg-white/80 border border-[#C5AF82] rounded-2xl p-4 mb-6">
-          <div className="flex justify-between items-center text-xs font-cinzel font-bold text-slate-900 mb-2">
-            <span>Course Expedition Route</span>
-            <span>{activeCourse.completedPercentage}% Conquered</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-3 border-b border-amber-900/15">
+            <div className="flex-1">
+              <div className="flex justify-between items-center text-xs font-cinzel font-bold text-slate-900 mb-1">
+                <span>Course Expedition Route</span>
+                <span>{activeCourse.completedPercentage}% Conquered</span>
+              </div>
+              <div className="w-full h-3 bg-amber-900/15 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full transition-all duration-500 shadow-xs"
+                  style={{ width: `${activeCourse.completedPercentage}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Subject Expert Badge Medallion */}
+            <div className="bg-amber-50 border border-amber-300 rounded-xl p-2.5 flex items-center justify-between sm:justify-start gap-3 shrink-0">
+              <ExpertBadgeMedallion
+                courseTitle={activeCourse.title}
+                icon={activeCourse.icon}
+                unlocked={activeCourse.expertBadgeUnlocked}
+                unlockedDate={activeCourse.expertBadgeDate}
+                size="md"
+              />
+              <div className="text-[10px] text-amber-950/80 font-medium max-w-[140px] leading-tight">
+                {activeCourse.expertBadgeUnlocked
+                  ? 'Subject Mastered! Expert Seal unlocked.'
+                  : 'Score 80%+ accuracy on chapters to unlock Expert Badge.'}
+              </div>
+            </div>
           </div>
-          <div className="w-full h-3 bg-amber-900/15 rounded-full overflow-hidden mb-2">
-            <div
-              className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full transition-all duration-500 shadow-xs"
-              style={{ width: `${activeCourse.completedPercentage}%` }}
-            />
-          </div>
+
           <p className="text-xs text-slate-700 font-medium leading-relaxed">
             {activeCourse.description}
           </p>
@@ -159,7 +183,7 @@ export const CourseModal: React.FC = () => {
               key={ch.id}
               className="p-4 rounded-2xl bg-white border border-[#C5AF82] hover:border-amber-500 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
             >
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 flex-1">
                 <div className="mt-1">
                   {ch.completed ? (
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 fill-emerald-100" />
@@ -167,7 +191,7 @@ export const CourseModal: React.FC = () => {
                     <Circle className="w-5 h-5 text-amber-700/40" />
                   )}
                 </div>
-                <div>
+                <div className="flex-1">
                   <h4 className="font-cinzel text-sm font-bold text-slate-900">
                     {ch.title}
                   </h4>
@@ -184,6 +208,14 @@ export const CourseModal: React.FC = () => {
                         <Volume2 className="w-3 h-3" /> Audio Drills
                       </span>
                     )}
+                  </div>
+
+                  {/* Chapter Mastery Bar */}
+                  <div className="mt-2.5 pt-2 border-t border-amber-900/10">
+                    <ChapterMasteryBar
+                      mastery={ch.masteryPercentage ?? (ch.completed ? 85 : 0)}
+                      showLabel={true}
+                    />
                   </div>
                 </div>
               </div>
@@ -212,7 +244,10 @@ export const CourseModal: React.FC = () => {
         {/* Global Action Button */}
         <div className="pt-2">
           <button
-            onClick={() => startTrivia(activeCourse)}
+            onClick={() => {
+              closeCourseModal();
+              startTrivia(activeCourse);
+            }}
             className="w-full bg-gradient-to-b from-[#059669] via-[#047857] to-[#064E3B] hover:from-[#10B981] hover:to-[#047857] text-white font-cinzel font-black text-sm py-3.5 rounded-full shadow-lg border-2 border-amber-300 flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
           >
             <Play className="w-4 h-4 fill-white" />

@@ -39,12 +39,25 @@ export interface ExtractedChapterContent {
 export async function processChapterWithGemini(
   rawText: string,
   suggestedTitle?: string,
-  suggestedSubject?: SubjectType
+  suggestedSubject?: SubjectType,
+  attachedImages?: Array<{ url: string; caption?: string }>
 ): Promise<ExtractedChapterContent> {
   const ai = getGeminiClient();
 
+  // Automatically discover any image URLs, markdown images, or figure links inside rawText
+  const extractedImageUrls: Array<{ url: string; caption?: string }> = attachedImages ? [...attachedImages] : [];
+  const mdImageRegex = /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g;
+  let match;
+  while ((match = mdImageRegex.exec(rawText)) !== null) {
+    extractedImageUrls.push({ caption: match[1] || 'Textbook Figure', url: match[2] });
+  }
+  const htmlImgRegex = /<img[^>]+src=["'](https?:\/\/[^"']+)["'][^>]*alt=["']?([^"'>]*)["']?/g;
+  while ((match = htmlImgRegex.exec(rawText)) !== null) {
+    extractedImageUrls.push({ url: match[1], caption: match[2] || 'Document Image' });
+  }
+
   if (!ai) {
-    return fallbackExtraction(rawText, suggestedTitle, suggestedSubject);
+    return fallbackExtraction(rawText, suggestedTitle, suggestedSubject, extractedImageUrls);
   }
 
   const prompt = `You are the core analysis engine for Study Quest, an academic study app designed for CLEP exams and college courses.
@@ -59,8 +72,12 @@ CRITICAL LEARNING MODEL RULES:
 3. Every question MUST include:
    - "explainMore" (used BEFORE answering: summary of what question asks, exact snippet from text, simplified explanation, hint, mnemonic)
    - "exploreAnswer" (used AFTER answering: exact paragraph from text, paragraph summary, whyCorrect, whyWrong array with explanation for all 4 choices, mnemonic)
-4. Mnemonic Engine: Generate memorable, catchy mnemonic devices (e.g. "If the p is low, the null must go", "Mito = Might = Powerhouse", "WEIRDOS", "OIL RIG").
-5. Audio Comprehension: Generate 2-3 native-speed audio dialogue or lecture comprehension questions (100% multiple choice) with Spanish/foreign language audio prompt or English lecture prompt.
+4. Mnemonic Engine: Generate memorable, catchy rhyming or acronym mnemonic devices with explanations.
+5. Audio Comprehension: Generate native-speed audio dialogue or lecture comprehension questions strictly for language subjects.
+6. Visual & Image-Based Questions:
+   - If the uploaded text contains images, figures, diagrams, maps, or charts, OR if any are listed below, ASSOCIATE these image URLs directly with specific questions!
+   - Available Document Images/Diagrams: ${JSON.stringify(extractedImageUrls)}
+   - When a question references a visual, diagram, map, chart, cellular structure, or figure, set "imageUrl" to the relevant image URL and provide an "imageCaption" (e.g., "Figure 1.1: Anatomical Diagram of the Eukaryotic Cell"). If no image is relevant for that specific question, leave "imageUrl" null.
 
 Uploaded Textbook Text:
 """
@@ -125,11 +142,14 @@ Respond ONLY with valid JSON conforming to this structure:
     {
       "id": "string",
       "chapterId": "string",
-      "type": "concept | vocabulary | grammar | reading | history",
+      "type": "concept | vocabulary | grammar | reading | history | diagram",
       "question": "string",
       "options": ["string", "string", "string", "string"],
       "correctIndex": 0,
       "difficulty": "easy | medium | hard",
+      "imageUrl": "string or null",
+      "imageCaption": "string or null",
+      "imageAlt": "string or null",
       "explainMore": {
         "summaryOfQuestion": "string",
         "exactTextSnippet": "string",
@@ -188,12 +208,12 @@ Respond ONLY with valid JSON conforming to this structure:
 
     const parsed = JSON.parse(response.text || '{}');
     if (!parsed.questions || parsed.questions.length === 0) {
-      return fallbackExtraction(rawText, suggestedTitle, suggestedSubject);
+      return fallbackExtraction(rawText, suggestedTitle, suggestedSubject, extractedImageUrls);
     }
     return parsed;
   } catch (err) {
     console.error('Gemini extraction failed, using fallback:', err);
-    return fallbackExtraction(rawText, suggestedTitle, suggestedSubject);
+    return fallbackExtraction(rawText, suggestedTitle, suggestedSubject, extractedImageUrls);
   }
 }
 
@@ -269,7 +289,8 @@ Return JSON:
 function fallbackExtraction(
   rawText: string,
   suggestedTitle?: string,
-  suggestedSubject?: SubjectType
+  suggestedSubject?: SubjectType,
+  attachedImages?: Array<{ url: string; caption?: string }>
 ): ExtractedChapterContent {
   const isSpanish = /el |la |los |las |que |en |de |por |para |aeropuerto|español/i.test(rawText);
   const isBiology = /cell|mitochondria|atp|respiration|dna|biology|organism/i.test(rawText);
@@ -345,8 +366,8 @@ function fallbackExtraction(
       {
         id: `q-${Date.now()}-1`,
         chapterId: 'uploaded-ch',
-        type: 'concept',
-        question: `Based on the uploaded chapter "${title}", what is the central premise established by the text?`,
+        type: attachedImages && attachedImages.length > 0 ? 'diagram' : 'concept',
+        question: `Based on the uploaded chapter "${title}"${attachedImages && attachedImages.length > 0 ? ' and the visual figure below' : ''}, what is the central premise established by the text?`,
         options: [
           'The fundamental conceptual framework and its analytical implications',
           'A superficial overview with no systematic application',
@@ -355,6 +376,8 @@ function fallbackExtraction(
         ],
         correctIndex: 0,
         difficulty: 'medium',
+        imageUrl: attachedImages && attachedImages.length > 0 ? attachedImages[0].url : undefined,
+        imageCaption: attachedImages && attachedImages.length > 0 ? attachedImages[0].caption || 'Document Figure' : undefined,
         explainMore: {
           summaryOfQuestion: 'The question evaluates the main argument outlined in the opening section of the text.',
           exactTextSnippet: rawText.slice(0, 180),

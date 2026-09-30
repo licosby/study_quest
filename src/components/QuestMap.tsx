@@ -2,11 +2,23 @@ import React, { useRef } from 'react';
 import { useStudyQuest } from '../context/StudyQuestContext.js';
 import { Course } from '../types/quest.js';
 import { SubjectIcon } from './SubjectIcon.js';
-import { Plus, ChevronLeft, ChevronRight, MapPin, Flag, Castle, Landmark } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, MapPin, Flag, Castle, Landmark, Compass, Sparkles, CheckCircle2, X, BookOpen, Play } from 'lucide-react';
 import mapBackdrop from '../assets/images/adventure_quest_map.jpg';
 
+import { ChapterMasteryBar } from './ChapterMasteryBar.js';
+import { ExpertBadgeMedallion } from './ExpertBadgeMedallion.js';
+
 export const QuestMap: React.FC = () => {
-  const { courses, openCourseModal, openCourseEditor, selectedRouteId, setSelectedRouteId, startTrivia } = useStudyQuest();
+  const {
+    courses,
+    openCourseModal,
+    openCourseEditor,
+    selectedRouteId,
+    setSelectedRouteId,
+    startTrivia,
+    travelEvent,
+    clearTravelEvent,
+  } = useStudyQuest();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollLeft = () => {
@@ -51,10 +63,13 @@ export const QuestMap: React.FC = () => {
           return (
             <button
               key={c.id}
-              onClick={() => setSelectedRouteId(c.id)}
+              onClick={() => {
+                setSelectedRouteId(c.id);
+                openCourseModal(c);
+              }}
               className={`px-3.5 py-1.5 rounded-full text-xs font-cinzel font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
                 isSelected
-                  ? 'bg-amber-400 text-slate-950 shadow-md border border-amber-500 font-black'
+                  ? 'bg-amber-400 text-slate-950 shadow-md border border-amber-500 font-black ring-2 ring-amber-300'
                   : 'parchment-card text-slate-800 hover:border-amber-400'
               }`}
             >
@@ -64,6 +79,94 @@ export const QuestMap: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Expedition Travel Progress Ribbon if a chapter or trivia was completed */}
+      {travelEvent && (
+        <div className="mb-3 parchment-card rounded-2xl p-3 sm:p-4 border-2 border-amber-500 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-200 text-slate-950 flex items-center justify-center shadow-md shrink-0 border border-white">
+              <Compass className="w-6 h-6 animate-spin-slow text-amber-950" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-cinzel text-[10px] font-black uppercase text-amber-900 tracking-wider">
+                  Expedition Journey Active
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
+                  +{travelEvent.toPercentage - travelEvent.fromPercentage}% Route Mastered
+                </span>
+              </div>
+              <h4 className="font-cinzel text-xs sm:text-sm font-bold text-slate-900 line-clamp-1">
+                Marching from <span className="text-emerald-800">{travelEvent.fromChapterTitle}</span> → <span className="text-amber-800">{travelEvent.toChapterTitle || travelEvent.destinationName}</span>
+              </h4>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            <div className="w-36 sm:w-44">
+              <div className="flex justify-between text-[10px] font-bold text-slate-800 mb-1">
+                <span>{travelEvent.fromPercentage}%</span>
+                <span className="text-emerald-800 font-black">{travelEvent.toPercentage}% Route Mastered</span>
+              </div>
+              <div className="h-2.5 rounded-full bg-amber-950/20 overflow-hidden border border-[#C5AF82]">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-600 via-amber-400 to-yellow-400 transition-all duration-1000 ease-out shadow-xs"
+                  style={{ width: `${travelEvent.toPercentage}%` }}
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={clearTravelEvent}
+              className="w-7 h-7 rounded-full bg-amber-900/10 hover:bg-amber-900/20 text-slate-700 flex items-center justify-center shrink-0 cursor-pointer"
+              aria-label="Dismiss travel alert"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Active Subject Expedition Header Banner when an individual course route is chosen */}
+      {selectedRouteId !== 'all' && activeCourseRoute && (
+        <div className="mb-3 parchment-card rounded-2xl p-3 sm:p-4 border-2 border-amber-500 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-b from-[#059669] via-[#047857] to-[#064E3B] border border-amber-300 text-amber-200 flex items-center justify-center shrink-0 shadow-md">
+              <SubjectIcon icon={activeCourseRoute.icon} className="w-6 h-6 text-amber-200" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-cinzel text-[10px] font-black uppercase text-amber-900 tracking-wider">
+                  Active Subject Trail
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-950 text-[10px] font-bold">
+                  {activeCourseRoute.completedPercentage}% Mastered
+                </span>
+              </div>
+              <h3 className="font-cinzel text-sm sm:text-base font-black text-slate-900">
+                {activeCourseRoute.title} — {activeCourseRoute.chapters.length} Chapters Available
+              </h3>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap sm:flex-nowrap">
+            <button
+              onClick={() => openCourseModal(activeCourseRoute)}
+              className="px-4 py-2 rounded-full text-xs font-cinzel font-bold bg-white hover:bg-amber-50 text-slate-900 border border-[#C5AF82] shadow-xs cursor-pointer flex items-center gap-1.5"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-amber-700" />
+              <span>Choose Chapter / Syllabus</span>
+            </button>
+            <button
+              onClick={() => startTrivia(activeCourseRoute)}
+              className="px-5 py-2 rounded-full text-xs font-cinzel font-black bg-gradient-to-b from-emerald-600 via-emerald-700 to-emerald-900 hover:from-emerald-500 hover:to-emerald-700 text-white shadow-md border border-amber-300 cursor-pointer flex items-center gap-1.5 active:scale-95"
+            >
+              <Play className="w-3.5 h-3.5 fill-white" />
+              <span>Launch Subject Expedition</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Background Painting Container with subtle vignette & map contours */}
       <div className="relative w-full rounded-3xl overflow-hidden border-2 border-amber-800/40 shadow-2xl min-h-[480px] sm:min-h-[540px] flex items-center">
@@ -237,39 +340,92 @@ export const QuestMap: React.FC = () => {
                 </svg>
 
                 {/* Chapter Waypoint Pins along the dedicated subject path */}
-                {activeCourseRoute.chapters.map((ch, idx) => (
-                  <div
-                    key={ch.id}
-                    onClick={() => {
-                      startTrivia(activeCourseRoute, ch);
-                    }}
-                    className="flex flex-col items-center group cursor-pointer transition-transform hover:-translate-y-1 shrink-0 w-44"
-                  >
-                    {/* Emerald Waypoint Pin */}
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-b from-[#059669] to-[#064E3B] border-2 border-amber-300 shadow-xl flex items-center justify-center text-amber-200 mb-2">
-                      <span className="font-cinzel font-black text-sm">{idx + 1}</span>
-                    </div>
+                {(() => {
+                  const uncompletedIdx = activeCourseRoute.chapters.findIndex((c) => !c.completed);
+                  const currentPartyIdx = uncompletedIdx !== -1 ? uncompletedIdx : activeCourseRoute.chapters.length - 1;
 
-                    <div className="parchment-card rounded-xl p-3 text-center w-44 shadow-lg border border-[#C5AF82]">
-                      <span className="font-cinzel text-[10px] font-black uppercase text-amber-900 block">
-                        Chapter {ch.chapterNumber}
-                      </span>
-                      <h4 className="font-cinzel text-xs font-bold text-slate-900 line-clamp-2 mt-0.5">
-                        {ch.title.split(':')[1] || ch.title}
-                      </h4>
-                      <div className="mt-2 flex items-center justify-center gap-1.5">
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                          {ch.questions.length} MCQs
-                        </span>
-                        {ch.questions.some((q) => q.diagram) && (
-                          <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-indigo-100 text-indigo-800">
-                            🔬 Diagram
-                          </span>
+                  return activeCourseRoute.chapters.map((ch, idx) => {
+                    const isCurrentParty = idx === currentPartyIdx;
+
+                    return (
+                      <div
+                        key={ch.id}
+                        onClick={() => {
+                          startTrivia(activeCourseRoute, ch);
+                        }}
+                        className="relative flex flex-col items-center group cursor-pointer transition-transform hover:-translate-y-1 shrink-0 w-44"
+                      >
+                        {/* Animated Traveling Scholar Avatar Token positioned above the party's current location */}
+                        {isCurrentParty && (
+                          <div className="absolute -top-12 z-20 flex flex-col items-center animate-bounce pointer-events-none">
+                            <div className="relative w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-400 via-amber-300 to-yellow-200 border-2 border-white shadow-xl flex items-center justify-center text-slate-950">
+                              <Compass className="w-5 h-5 text-amber-950 animate-spin-slow" />
+                              <div className="absolute inset-0 rounded-xl bg-amber-400/40 animate-ping" />
+                            </div>
+                            <span className="text-[9px] font-cinzel font-black px-1.5 py-0.5 rounded-full bg-slate-950/90 text-amber-300 shadow-md whitespace-nowrap mt-0.5">
+                              Expedition Party
+                            </span>
+                          </div>
                         )}
+
+                        {/* Emerald Waypoint Pin with Completion Badge */}
+                        <div
+                          className={`relative w-14 h-14 rounded-full bg-gradient-to-b ${
+                            ch.completed
+                              ? 'from-emerald-500 to-emerald-700 ring-4 ring-emerald-400/40'
+                              : 'from-[#059669] to-[#064E3B]'
+                          } border-2 border-amber-300 shadow-xl flex items-center justify-center text-amber-200 mb-2 transition-all`}
+                        >
+                          <span className="font-cinzel font-black text-sm">{idx + 1}</span>
+                          {ch.completed && (
+                            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-400 border border-white text-slate-950 text-[10px] font-black flex items-center justify-center shadow-xs">
+                              ✓
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="parchment-card rounded-xl p-3 text-center w-44 shadow-lg border border-[#C5AF82]">
+                          <span className="font-cinzel text-[10px] font-black uppercase text-amber-900 block">
+                            Chapter {ch.chapterNumber}
+                          </span>
+                          <h4 className="font-cinzel text-xs font-bold text-slate-900 line-clamp-2 mt-0.5">
+                            {ch.title.split(':')[1] || ch.title}
+                          </h4>
+                          <div className="mt-2 flex items-center justify-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                              {ch.questions.length} MCQs
+                            </span>
+                            {ch.questions.some((q) => q.diagram) && (
+                              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-indigo-100 text-indigo-800">
+                                🔬 Diagram
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Mini Chapter Mastery Bar */}
+                          <div className="mt-2.5 pt-1.5 border-t border-amber-900/15">
+                            <ChapterMasteryBar
+                              mastery={ch.masteryPercentage ?? (ch.completed ? 85 : 0)}
+                              compact={true}
+                            />
+                          </div>
+
+                          {/* Direct Play Chapter Button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startTrivia(activeCourseRoute, ch);
+                            }}
+                            className="mt-2.5 w-full bg-gradient-to-b from-[#059669] to-[#047857] hover:from-[#10B981] hover:to-[#047857] text-white font-cinzel font-bold text-[10px] py-1.5 px-2 rounded-lg shadow-xs flex items-center justify-center gap-1 cursor-pointer active:scale-95"
+                          >
+                            <Play className="w-3 h-3 fill-white" />
+                            <span>Play Chapter {ch.chapterNumber}</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  });
+                })()}
 
                 {/* Subject Landmark Destination! (Directly addressing: "Each subject should have its own destination") */}
                 <div
@@ -291,6 +447,17 @@ export const QuestMap: React.FC = () => {
                     <p className="text-[10px] text-amber-900 font-semibold mt-1">
                       {activeCourseRoute.completedPercentage}% Route Mastered
                     </p>
+
+                    {/* Subject Expert Seal Badge */}
+                    <div className="mt-2 pt-2 border-t border-amber-900/15 flex justify-center">
+                      <ExpertBadgeMedallion
+                        courseTitle={activeCourseRoute.title}
+                        icon={activeCourseRoute.icon}
+                        unlocked={activeCourseRoute.expertBadgeUnlocked}
+                        unlockedDate={activeCourseRoute.expertBadgeDate}
+                        size="sm"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

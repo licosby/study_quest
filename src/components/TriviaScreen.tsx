@@ -3,6 +3,9 @@ import { useStudyQuest } from '../context/StudyQuestContext.js';
 import { ArrowLeft, ArrowRight, Lightbulb, BookOpen, Volume2, CheckCircle2, XCircle, Trophy, RotateCcw, Home, Sparkles, Brain, FileText, HelpCircle } from 'lucide-react';
 import { playNativeSpeech } from '../utils/audioHelper.js';
 import { DiagramViewer } from './DiagramViewer.js';
+import { TravelAnimation } from './TravelAnimation.js';
+import { ChapterMasteryBar } from './ChapterMasteryBar.js';
+import { ExpertBadgeMedallion } from './ExpertBadgeMedallion.js';
 
 export const TriviaScreen: React.FC = () => {
   const {
@@ -25,9 +28,21 @@ export const TriviaScreen: React.FC = () => {
     activeExploreData,
     quizScore,
     quizCompleted,
+    missedQuestions,
+    targetPassingRate,
+    minRequiredQuestions,
+    isLoadingNextQuestion,
+    timerMode,
+    setTimerMode,
+    timeRemaining,
+    isTimerPaused,
+    togglePauseTimer,
+    travelEvent,
+    recentlyUnlockedExpertBadge,
     exitQuiz,
     startTrivia,
     activeCourse,
+    activeChapter,
   } = useStudyQuest();
 
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -72,9 +87,52 @@ export const TriviaScreen: React.FC = () => {
           <h2 className="font-cinzel text-2xl sm:text-3xl font-black text-slate-900 mb-3">
             {scaledClep >= 50 ? 'College Credit Standard Mastered! 🎓' : 'Chapter Knowledge Consolidated!'}
           </h2>
-          <p className="text-xs sm:text-sm text-amber-950/80 max-w-md mx-auto mb-8 font-medium">
+          <p className="text-xs sm:text-sm text-amber-950/80 max-w-md mx-auto mb-6 font-medium">
             Your results have been etched into the cartographer's ledger.
           </p>
+
+          {/* Newly Unlocked Subject Expert Badge Celebration Banner */}
+          {recentlyUnlockedExpertBadge && (
+            <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-200 to-yellow-100 border-2 border-amber-500 shadow-xl text-amber-950 flex flex-col sm:flex-row items-center gap-4 animate-in fade-in zoom-in-95">
+              <ExpertBadgeMedallion
+                courseTitle={recentlyUnlockedExpertBadge.courseTitle}
+                icon={recentlyUnlockedExpertBadge.icon}
+                unlocked={true}
+                unlockedDate={recentlyUnlockedExpertBadge.date}
+                size="lg"
+                showLabel={false}
+              />
+              <div className="text-center sm:text-left flex-1">
+                <span className="font-cinzel text-[10px] font-black uppercase tracking-wider text-amber-900 block">
+                  👑 Grand Milestone Achieved!
+                </span>
+                <h3 className="font-cinzel text-base sm:text-lg font-black text-slate-950">
+                  {recentlyUnlockedExpertBadge.courseTitle} Expert Badge Unlocked!
+                </h3>
+                <p className="text-xs text-amber-950/80 font-medium mt-0.5 leading-snug">
+                  You conquered chapters with 80%+ accuracy! The royal seal has been permanently etched into your achievements ledger.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Chapter Mastery Bar showing updated accuracy */}
+          <div className="mb-6 p-4 rounded-2xl bg-white/90 border border-[#C5AF82] shadow-xs text-left">
+            <ChapterMasteryBar
+              mastery={Math.max(activeChapter?.masteryPercentage || 0, accuracy)}
+              showLabel={true}
+            />
+          </div>
+
+          {/* Visual Travel Animation: Scholar / Compass travels towards next waypoint with progress bar fill */}
+          <TravelAnimation
+            fromChapterTitle={travelEvent?.fromChapterTitle || activeChapter?.title || 'Current Chapter'}
+            toChapterTitle={travelEvent?.toChapterTitle || 'Next Waypoint'}
+            destinationName={travelEvent?.destinationName || activeCourse?.destination?.name || 'Academic Citadel'}
+            fromPercentage={travelEvent?.fromPercentage ?? (activeCourse?.completedPercentage || 25)}
+            toPercentage={travelEvent?.toPercentage ?? Math.min(100, (activeCourse?.completedPercentage || 25) + 20)}
+            onContinue={exitQuiz}
+          />
 
           {/* Stats Badges Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
@@ -148,8 +206,8 @@ export const TriviaScreen: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto py-6 px-4">
-      {/* Top Header / Exit */}
-      <div className="flex items-center justify-between gap-4 mb-4">
+      {/* Top Header / Exit & Timer Controls */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <button
           onClick={exitQuiz}
           className="flex items-center gap-1.5 text-xs font-cinzel font-bold text-amber-900 bg-white/80 hover:bg-white border border-[#C5AF82] px-4 py-2 rounded-full shadow-xs cursor-pointer"
@@ -157,6 +215,42 @@ export const TriviaScreen: React.FC = () => {
           <ArrowLeft className="w-4 h-4" />
           <span>Exit to Quest Map</span>
         </button>
+
+        {/* Timer Mode Controls (No Time Limit vs. Timed Speed Run) */}
+        <div className="flex items-center gap-2">
+          {timerMode === 'timed' ? (
+            <div className="flex items-center gap-2 bg-white/90 border border-amber-300 rounded-full px-3 py-1 shadow-xs">
+              <span className={`font-mono text-xs font-black ${timeRemaining <= 15 ? 'text-rose-600 animate-pulse' : 'text-slate-900'}`}>
+                ⏳ {timeRemaining}s
+              </span>
+              <button
+                onClick={togglePauseTimer}
+                title={isTimerPaused ? 'Resume countdown' : 'Pause countdown'}
+                className="text-[10px] font-bold text-amber-950 px-2 py-0.5 rounded-md bg-amber-100 hover:bg-amber-200 cursor-pointer"
+              >
+                {isTimerPaused ? '▶️ Resume' : '⏸️ Pause'}
+              </button>
+              <button
+                onClick={() => setTimerMode('untimed')}
+                className="text-[10px] text-slate-500 hover:text-slate-800 underline ml-1 cursor-pointer"
+              >
+                Switch to No Time Limit
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 bg-white/80 border border-emerald-300 rounded-full px-3 py-1 shadow-xs">
+              <span className="text-xs font-bold text-emerald-800 flex items-center gap-1">
+                🌿 No Time Limit (Untimed)
+              </span>
+              <button
+                onClick={() => setTimerMode('timed')}
+                className="text-[10px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded-full border border-amber-300 cursor-pointer"
+              >
+                ⏱️ Enable 60s Timer
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="flex items-center gap-3">
           <span className="font-cinzel text-xs font-bold text-slate-900 bg-amber-100/90 border border-amber-300 px-3.5 py-1.5 rounded-full shadow-2xs">
@@ -167,6 +261,54 @@ export const TriviaScreen: React.FC = () => {
           </span>
         </div>
       </div>
+
+      {/* Dynamic Educational Engine & Adaptive Mastery HUD */}
+      <div className="bg-amber-950/5 border border-amber-900/20 rounded-2xl p-3 sm:p-4 mb-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-cinzel font-black uppercase text-[11px] text-amber-900 bg-amber-200/80 px-2.5 py-1 rounded-full border border-amber-300 flex items-center gap-1.5 shadow-2xs">
+            <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+            85% Passing Target
+          </span>
+          <span className="font-semibold text-slate-700 bg-white/80 px-2.5 py-1 rounded-full border border-slate-200">
+            Min 12 Questions: <strong className="text-slate-900">{Math.min(currentQuestionIndex + 1, minRequiredQuestions || 12)}/{minRequiredQuestions || 12}</strong>
+          </span>
+          <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2.5 py-1 rounded-full flex items-center gap-1">
+            <span>📡</span> OpenStax & Gutenberg Live APIs Active
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-amber-950 font-bold">
+            Live Accuracy:{' '}
+            <span
+              className={`font-black font-cinzel ${
+                Math.round((quizScore / Math.max(isAnswered ? currentQuestionIndex + 1 : currentQuestionIndex, 1)) * 100) >= (targetPassingRate || 85)
+                  ? 'text-emerald-700'
+                  : 'text-amber-700'
+              }`}
+            >
+              {Math.round((quizScore / Math.max(isAnswered ? currentQuestionIndex + 1 : currentQuestionIndex, 1)) * 100)}%
+            </span>
+          </span>
+          <span className="text-slate-500">({quizScore} correct)</span>
+        </div>
+      </div>
+
+      {/* Adaptive Reinforcement Banner if user has answered >= 12 questions but accuracy is < 85% */}
+      {currentQuestionIndex + 1 >= (minRequiredQuestions || 12) &&
+        Math.round((quizScore / (currentQuestionIndex + 1)) * 100) < (targetPassingRate || 85) && (
+          <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-amber-400/10 to-amber-500/20 border-2 border-amber-500/60 text-amber-950 flex items-center gap-3 animate-in fade-in">
+            <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 font-bold">
+              ⚔️
+            </div>
+            <div className="text-xs leading-relaxed">
+              <strong className="font-cinzel uppercase text-amber-950 block">Adaptive Reinforcement Active</strong>
+              You've completed {currentQuestionIndex + 1} questions with{' '}
+              {Math.round((quizScore / (currentQuestionIndex + 1)) * 100)}% accuracy. The quest requires{' '}
+              <strong className="text-emerald-800">85% passing rate</strong> to claim chapter victory. Fresh questions are dynamically streaming from OpenStax, Project Gutenberg, and open educational APIs!
+            </div>
+          </div>
+        )}
 
       {/* Progress Bar */}
       <div className="w-full h-2.5 bg-amber-900/20 rounded-full overflow-hidden mb-6">
@@ -367,10 +509,29 @@ export const TriviaScreen: React.FC = () => {
             ) : (
               <button
                 onClick={nextQuestion}
-                className="bg-slate-900 hover:bg-slate-800 text-amber-200 font-cinzel font-bold text-sm px-8 py-3 rounded-full shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
+                disabled={isLoadingNextQuestion}
+                className="bg-slate-900 hover:bg-slate-800 text-amber-200 font-cinzel font-bold text-sm px-8 py-3 rounded-full shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 transition-all disabled:opacity-50"
               >
-                <span>{currentQuestionIndex + 1 < currentQuestions.length ? 'Next Waypoint' : 'View Triumph'}</span>
-                <ArrowRight className="w-4 h-4" />
+                {isLoadingNextQuestion ? (
+                  <>
+                    <span className="animate-pulse">Streaming Next API Question...</span>
+                  </>
+                ) : currentQuestionIndex + 1 >= (minRequiredQuestions || 12) &&
+                  Math.round((quizScore / (currentQuestionIndex + 1)) * 100) >= (targetPassingRate || 85) ? (
+                  <>
+                    <span>Claim Quest Victory (85%+ Mastered) 🏆</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                ) : (
+                  <>
+                    <span>
+                      {currentQuestionIndex + 1 < (minRequiredQuestions || 12)
+                        ? `Next Challenge (${currentQuestionIndex + 1}/${minRequiredQuestions || 12} min)`
+                        : `Next Challenge (85% Target)`}
+                    </span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             )}
           </div>

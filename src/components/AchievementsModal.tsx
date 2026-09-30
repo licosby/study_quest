@@ -1,9 +1,10 @@
 import React from 'react';
 import { useStudyQuest } from '../context/StudyQuestContext.js';
-import { X, Trophy, CheckCircle2, Lock } from 'lucide-react';
+import { X, Trophy, CheckCircle2, Lock, Crown, Award } from 'lucide-react';
+import { ExpertBadgeMedallion } from './ExpertBadgeMedallion.js';
 
 export const AchievementsModal: React.FC = () => {
-  const { isAchievementsModalOpen, closeAchievementsModal, achievements } = useStudyQuest();
+  const { isAchievementsModalOpen, closeAchievementsModal, achievements, courses } = useStudyQuest();
 
   if (!isAchievementsModalOpen) return null;
 
@@ -32,6 +33,41 @@ export const AchievementsModal: React.FC = () => {
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Subject Expert Badges Section */}
+        <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30">
+          <div className="flex items-center justify-between mb-3">
+            <span className="font-cinzel text-xs font-black uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+              <Crown className="w-4 h-4 text-amber-600 fill-amber-500" />
+              Subject Expert Badges
+            </span>
+            <span className="text-[10px] font-bold text-amber-900 bg-amber-200/80 px-2.5 py-0.5 rounded-full">
+              {courses.filter((c) => c.expertBadgeUnlocked).length} / {courses.length} Mastered
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+            {courses.map((course) => (
+              <div
+                key={course.id}
+                className={`p-2.5 rounded-xl border flex items-center gap-2.5 ${
+                  course.expertBadgeUnlocked
+                    ? 'bg-white border-amber-400 shadow-xs'
+                    : 'bg-white/40 border-amber-900/10 opacity-70'
+                }`}
+              >
+                <ExpertBadgeMedallion
+                  courseTitle={course.title}
+                  icon={course.icon}
+                  unlocked={course.expertBadgeUnlocked}
+                  unlockedDate={course.expertBadgeDate}
+                  size="sm"
+                  showLabel={true}
+                />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Achievements Grid */}

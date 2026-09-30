@@ -51,6 +51,7 @@ export interface Question {
   options: [string, string, string, string];
   correctIndex: number;
   difficulty: 'easy' | 'medium' | 'hard';
+  topic?: string;
   diagram?: QuestionDiagram;
   explainMore: ExplainMoreData;
   exploreAnswer: ExploreAnswerData;
@@ -94,6 +95,7 @@ export interface Chapter {
   title: string;
   chapterNumber: number;
   completed: boolean;
+  masteryPercentage?: number; // 0 to 100 based on trivia quiz accuracy
   description: string;
   rawText: string;
   summary: string;
@@ -127,6 +129,8 @@ export interface Course {
   destination: DestinationLandmark;
   chapters: Chapter[];
   isLocked?: boolean;
+  expertBadgeUnlocked?: boolean; // Unlocked when all chapters reach 80%+ mastery
+  expertBadgeDate?: string;
 }
 
 export interface UserProfile {

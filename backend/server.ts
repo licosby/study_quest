@@ -5,6 +5,8 @@ import triviaRoutes from './routes/trivia.js';
 import audioRoutes from './routes/audio.js';
 import mnemonicRoutes from './routes/mnemonics.js';
 import analyticsRoutes from './routes/analytics.js';
+import pdfRoutes from './routes/pdf.js';
+import textbookRoutes from './routes/textbook.js';
 
 dotenv.config();
 
@@ -20,6 +22,8 @@ export function createBackendApp(): Express {
   app.use('/api/audio', audioRoutes);
   app.use('/api/mnemonics', mnemonicRoutes);
   app.use('/api/analytics', analyticsRoutes);
+  app.use('/api/pdf', pdfRoutes);
+  app.use('/api/textbook', textbookRoutes);
 
   app.get('/api/health', (req, res) => {
     res.json({

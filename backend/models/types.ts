@@ -35,11 +35,14 @@ export interface ExploreAnswerData {
 export interface Question {
   id: string;
   chapterId: string;
-  type: QuestionType;
+  type: QuestionType | 'diagram';
   question: string;
   options: [string, string, string, string];
   correctIndex: number;
   difficulty: DifficultyLevel;
+  imageUrl?: string;
+  imageCaption?: string;
+  imageAlt?: string;
   explainMore: ExplainMoreData;
   exploreAnswer: ExploreAnswerData;
 }
